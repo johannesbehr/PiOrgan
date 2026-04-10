@@ -116,7 +116,17 @@ void PiOrganInterface::setRootObject(QObject *rootObject){
     btnPlayMidiFile = rootObject->findChild<QObject*>("btnPlayMidiFile");
 
     lvSoundFonts->setProperty("model",  getSoundFonts()); 
-    lvMidiFiles->setProperty("model",  getMidiFiles()); 
+    lvMidiFiles->setProperty("model",  getMidiFiles());
+    
+    // PageSequencer
+    btnSequencerStart = rootObject->findChild<QObject*>("btnSequencerStart");
+    btnSequencerStop = rootObject->findChild<QObject*>("btnSequencerStop");
+    sldSequencerTempo = rootObject->findChild<QObject*>("sldSequencerTempo");
+    txtSequencerTempo = rootObject->findChild<QObject*>("txtSequencerTempo");
+    btnSequencerLoadStyle = rootObject->findChild<QObject*>("btnSequencerLoadStyle");
+    lvSequencerStyles = rootObject->findChild<QObject*>("lvSequencerStyles");
+    lvSequencerStyles->setProperty("model",  getSequencerStyles());
+
     eventsEnabled_ = true;
     int setting = myPiOrgan.getCurrentSetting();
     onSettingChanged(setting);
@@ -458,4 +468,63 @@ void PiOrganInterface::setSaveMode(bool save){
     }else{
         btnSaveSetting->setProperty("palette", QVariant::fromValue(pltBtnRegular));
     }
+}
+
+void PiOrganInterface::sequencerCmdLoadStyles(){
+    lvSequencerStyles->setProperty("model",  getSequencerStyles());
+}
+
+void PiOrganInterface::sequencerCmdLoadStyle(const QString &styleName){
+    // if(selectedSoundFont!=""){
+    //     qDebug() << "Load SoundFont:" << selectedSoundFont.c_str();
+    //     btnLoadSoundFont->setProperty("enabled",  "false");
+    //     btnLoadSoundFont->setProperty("palette",  QVariant::fromValue(pltBtnDisabled));
+    //     busyIndicator->setProperty("running",  "true");
+    //     std::thread t(&PiOrganInterface::loadSoundFontThread, this);
+    //     t.detach();
+    // }
+    myPiOrgan.sequencerLoadStyle(styleName.toStdString().c_str());
+    btnSequencerStart->setProperty("palette",  QVariant::fromValue(pltBtnRegular));
+    btnSequencerStart->setProperty("enabled",  "true");
+    btnSequencerStop->setProperty("palette",  QVariant::fromValue(pltBtnRegular));
+    btnSequencerStop->setProperty("enabled",  "true");
+   
+    // btnSequencerStop->setProperty("palette",  QVariant::fromValue(pltBtnDisabled));
+   // btnSequencerStop->setProperty("enabled",  "false");  
+}
+
+void PiOrganInterface::sequencerCmdLoadStyle(int index){
+    myPiOrgan.sequencerLoadStyle(index);
+    btnSequencerStart->setProperty("palette",  QVariant::fromValue(pltBtnRegular));
+    btnSequencerStart->setProperty("enabled",  "true");
+    btnSequencerStop->setProperty("palette",  QVariant::fromValue(pltBtnRegular));
+    btnSequencerStop->setProperty("enabled",  "true");
+   
+    // btnSequencerStop->setProperty("palette",  QVariant::fromValue(pltBtnDisabled));
+   // btnSequencerStop->setProperty("enabled",  "false");  
+}
+
+
+void PiOrganInterface::sequencerCmdStart(){
+    myPiOrgan.sequencerStart();
+}  
+
+void PiOrganInterface::sequencerCmdStop(){
+        myPiOrgan.sequencerStop();
+}
+
+void PiOrganInterface::sequencerCmdSetTempo(const double value){
+    double s = 0.5 + (value * 1.5);
+    myPiOrgan.setSequencerTempo(s);
+}
+                               
+QStringList  PiOrganInterface::getSequencerStyles(){
+    QStringList model;                                   
+    std::vector<std::string> sequencerStyles = myPiOrgan.getSequencerStyles();
+
+    for (const auto& style : sequencerStyles) {
+        model.append(QString(style.c_str()));  
+        qDebug() << "Sequencer Style:" << QString(style.c_str());  
+    }
+    return model;
 }

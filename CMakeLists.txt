@@ -13,13 +13,13 @@ qt_add_resources(QRC_SOURCES
 )
 
 qt_add_executable(appuntitled6
-    main.cpp piorganInterface.cpp piorgan.cpp virtualKeyboard.cpp ${QRC_SOURCES}
+    main.cpp piorganInterface.cpp piorgan.cpp virtualKeyboard.cpp controlInterfaceClient.cpp ${QRC_SOURCES}
 )
 
 qt_add_qml_module(appuntitled6
     URI untitled6
     VERSION 1.0
-    QML_FILES main.qml PageLoadSoundFont.qml PageEffects.qml PageInstruments.qml PageMidiPlayer.qml
+    QML_FILES main.qml PageLoadSoundFont.qml PageEffects.qml PageInstruments.qml PageMidiPlayer.qml PageSequencer.qml
 )
 
 

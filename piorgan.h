@@ -10,6 +10,7 @@
 #include <string>
 #include <alsa/asoundlib.h>
 
+#include "controlInterfaceClient.h"
 
 #define UP 1
 #define DOWN 2
@@ -110,6 +111,14 @@ class PiOrgan{
         void setMidiFileTempo(double tempo);
         void onTick(void *data, int tick);
 
+
+        std::vector<std::string> getSequencerStyles();
+        void setSequencerTempo(double tempo);
+        void sequencerStart();
+        void sequencerStop();
+        void sequencerLoadStyle(const char *styleName);
+        void sequencerLoadStyle(int styleIndex);
+
     private:
         int openSynth(const char *soundfont);       
         int  openUSB();
@@ -143,6 +152,7 @@ class PiOrgan{
         int sfont_id=-1;
 
         snd_seq_t *midiInOut;
+        ControlInterfaceClient *seqClient;
 
         struct MPreset presets[16][128];
         

@@ -43,6 +43,12 @@ Window {
         PageMidiPlayer {
             id: item4
         }
+        
+        PageSequencer {
+            id: item5
+        }
+
+
 
     }
 

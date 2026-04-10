@@ -23,6 +23,7 @@ public:
     QStringList getPresets(const int instrument);
     QStringList getSoundFonts();
     QStringList getMidiFiles();
+    QStringList getSequencerStyles();
     int getOffset(const int instrument);
     double getVolume(const int instrument);
     int getSelectedPreset(const int instrument);
@@ -43,8 +44,14 @@ public slots:
    void playMidiFile();
    void stopMidiFile();
    void midiSpeedValueChanged(const double value);
-
    void setProperty(QObject*, const char*, const QVariant& );
+
+   void sequencerCmdLoadStyle(const QString &styleName);
+   void sequencerCmdLoadStyle(int styleIndex);   
+   void sequencerCmdLoadStyles();
+   void sequencerCmdStart();
+   void sequencerCmdStop();
+   void sequencerCmdSetTempo(const double value);
 
 signals :
    void signalSetProperty(QObject*, const char*, const QVariant& );
@@ -104,6 +111,17 @@ private :
 
 
     QObject *busyIndicator;
+
+
+    // PageSequencer
+    QObject *lvSequencerStyles;
+    QObject *btnSequencerStart;
+    QObject *btnSequencerStop;
+    QObject *sldSequencerTempo;
+    QObject *txtSequencerTempo;
+    QObject *btnSequencerLoadStyle;
+    
+
 
 };
 

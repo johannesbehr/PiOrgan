@@ -42,6 +42,9 @@ int static_handle_tick(void *data, int tick)
 
 PiOrgan::PiOrgan(){
 	piorgan_instance = this;
+	seqClient = new ControlInterfaceClient("/tmp/stygmorgan_out", "/tmp/stygmorgan_in");
+	seqClient->connect();
+
     cout << "PiOrgan: Do some setup..\n";
 	sprintf(currentSoundFont,"%s", regular_sf);  
 }
@@ -63,6 +66,63 @@ void PiOrgan::cleanup(){
 void PiOrgan::onTick(void *data, int tick){
 	if(tick_!=NULL){
 		tick_(tick, bpm);
+	}
+}
+
+std::vector<std::string> PiOrgan::getSequencerStyles(){
+
+	if(seqClient->isConnected()){
+		return seqClient->list_styles();
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+		std::vector<std::string> sequencerStyles;
+		sequencerStyles.push_back("Dummy Rock");
+		sequencerStyles.push_back("Dummy Pop");
+		sequencerStyles.push_back("Dummy Blues");
+		return sequencerStyles;
+	}
+
+}
+
+void PiOrgan::setSequencerTempo(double tempo){
+	std::cout << "setSequencerTempo: " << tempo << std::endl;
+}
+void PiOrgan::sequencerStart(){
+	std::cout << "sequencerStart" << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->ostart();
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+	}
+}
+
+void PiOrgan::sequencerStop(){
+	std::cout << "sequencerStop" << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->ostop();
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+	}			
+}
+
+void PiOrgan::sequencerLoadStyle(const char *styleName){
+	std::cout << "sequencerLoadStyle: " << styleName << std::endl;
+	if(seqClient->isConnected()){
+		std::vector<std::string> styles = seqClient->list_styles();
+		auto it = std::find(styles.begin(), styles.end(), std::string(styleName));
+		if(it != styles.end()){
+			int index = std::distance(styles.begin(), it);
+			seqClient->select_style(index);
+		}else{
+			std::cerr << "Invalid style name: " << styleName << std::endl;
+		}
+	}
+}
+
+void PiOrgan::sequencerLoadStyle(int styleIndex){
+	std::cout << "sequencerLoadStyle: " << styleIndex << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->select_style(styleIndex);
 	}
 }
 
