@@ -24,7 +24,7 @@ public:
     bool ostart();
     bool ostop();
     bool setTempo(int bpm);
-
+    bool ctoggle(int channel);
     std::vector<std::string> list_styles();
     bool select_style(int id);
 

@@ -223,6 +223,27 @@ bool ControlInterfaceClient::setTempo(int bpm) {
     }
 }
 
+
+bool ControlInterfaceClient::ctoggle(int channel) {
+    json j;
+    j["cmd"] = "ctoggle";
+    j["channel"] = channel;
+
+    std::string resp;
+    if (!send_command(j.dump(), resp)) {
+        return false;
+    }
+
+    try{
+        auto jr = json::parse(resp);
+        return jr["status"] == "ok";
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing response: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+
 std::vector<std::string> ControlInterfaceClient::list_styles() {
     json j;
     j["cmd"] = "list_styles";

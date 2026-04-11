@@ -51,6 +51,10 @@ public slots:
    void sequencerCmdLoadStyles();
    void sequencerCmdStart();
    void sequencerCmdStop();
+   void sequencerCmdDrumsOnOff();
+   void sequencerCmdBassOnOff();
+   void sequencerCmdBackingOnOff();
+   
    void sequencerCmdSetTempo(const double value);
 
 signals :

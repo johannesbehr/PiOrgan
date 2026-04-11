@@ -213,9 +213,88 @@ Item {
                         MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.BlankCursor
-                        enabled: false
+                        enabled: true
                     }
 
+            }
+
+
+      Button {
+                id: btnSequencerDrumsOnOff
+                objectName: "btnSequencerDrumsOnOff"
+                x: 140
+                y: 160
+                // width: 100
+                // height: 44
+                enabled: true;
+                text: qsTr("Drums")
+                font.pointSize: 14
+                font.weight: Font.Bold
+                onClicked:{
+                    _myClass.sequencerCmdDrumsOnOff();
+                }
+
+                palette {
+                    button: "#303030"
+                    buttonText: "white"
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.BlankCursor
+                    enabled: false
+                }
+            }
+
+      Button {
+                id: btnSequencerBassOnOff
+                objectName: "btnSequencerBassOnOff"
+                x: 140
+                y: 200
+                // width: 100
+                // height: 44
+                enabled: true;
+                text: qsTr("Bass")
+                font.pointSize: 14
+                font.weight: Font.Bold
+                onClicked:{
+                    _myClass.sequencerCmdBassOnOff();
+                }
+
+                palette {
+                    button: "#303030"
+                    buttonText: "white"
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.BlankCursor
+                    enabled: false
+                }
+            }
+
+      Button {
+                id: btnSequencerBackingOnOff
+                objectName: "btnSequencerBackingOnOff"
+                x: 140
+                y: 240
+                // width: 100
+                // height: 44
+                enabled: true;
+                text: qsTr("Backing")
+                font.pointSize: 14
+                font.weight: Font.Bold
+                onClicked:{
+                    _myClass.sequencerCmdBackingOnOff();
+                }
+
+                palette {
+                    button: "#303030"
+                    buttonText: "white"
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.BlankCursor
+                    enabled: false
+                }
             }
 
 

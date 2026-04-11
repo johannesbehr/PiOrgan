@@ -118,6 +118,9 @@ class PiOrgan{
         void sequencerStop();
         void sequencerLoadStyle(const char *styleName);
         void sequencerLoadStyle(int styleIndex);
+        void sequencerDrumsOnOff();
+        void sequencerBassOnOff();
+        void sequencerBackingOnOff();
 
     private:
         int openSynth(const char *soundfont);       
@@ -128,9 +131,12 @@ class PiOrgan{
         
         void doCmd(char cmd);
         void setInstrument(int instrument);
-        void readArduino();
         void readMidi();
-        void midiStygmorganIn();
+
+        void handleMidiSequenzer(snd_seq_event_t *ev);
+        void handleMidiKeyboard(snd_seq_event_t *ev);
+        bool autoConnect(int port, const char* deviceName); 
+
         void keyPressed(int key);
 
         void (*settingChanged_)(int) = NULL;
@@ -142,8 +148,6 @@ class PiOrgan{
 
         bool stop_ = false;
         std::thread* threadMidi_;
-        std::thread* threadArduino_;
-        std::thread* threadMidiStygmorgan_;
 
         fluid_synth_t *synth = NULL;
         fluid_sfont_t* sfont = NULL;

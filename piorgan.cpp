@@ -58,9 +58,7 @@ PiOrgan::PiOrgan(const char *soundFont){
 void PiOrgan::cleanup(){
     cout << "PiOrgan: Do some cleanup..\n";
 	stop_ = true;
-	threadMidiStygmorgan_->join(); 
     threadMidi_->join(); 
-    threadArduino_->join(); 
 }
 
 void PiOrgan::onTick(void *data, int tick){
@@ -105,6 +103,36 @@ void PiOrgan::sequencerStop(){
 	}			
 }
 
+void PiOrgan::sequencerDrumsOnOff(){
+	std::cout << "sequencerDrumsOnOff" << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->ctoggle(9);
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+	}			
+}
+void PiOrgan::sequencerBassOnOff(){
+	std::cout << "sequencerBassOnOff" << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->ctoggle(10);
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+	}			
+}
+void PiOrgan::sequencerBackingOnOff(){
+	std::cout << "sequencerBackingOnOff" << std::endl;
+	if(seqClient->isConnected()){
+		seqClient->ctoggle(11);
+		seqClient->ctoggle(12);
+		seqClient->ctoggle(13);
+		seqClient->ctoggle(14);
+		seqClient->ctoggle(15);
+	}else{
+		std::cerr << "ControlInterfaceClient not connected!" << std::endl;
+	}			
+}
+
+
 void PiOrgan::sequencerLoadStyle(const char *styleName){
 	std::cout << "sequencerLoadStyle: " << styleName << std::endl;
 	if(seqClient->isConnected()){
@@ -126,49 +154,47 @@ void PiOrgan::sequencerLoadStyle(int styleIndex){
 	}
 }
 
-void PiOrgan::midiStygmorganIn(){
-	int err;
-    int port = snd_seq_create_simple_port(midiInOut, "Sequenzer in", SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_APPLICATION);
+void PiOrgan::handleMidiKeyboard(snd_seq_event_t *ev){
+		int channel = (int)ev->data.note.channel;
+		int note = (int)ev->data.note.note;
+		int velocity = (int)ev->data.note.velocity;
 
-    // Finde das MIDI-Gerät anhand seines Namens
-    const char *deviceName = "stygmorgan"; // Name des MIDI-Geräts
-    int client = -1;
-    snd_seq_client_info_t *clientInfo;
-    snd_seq_client_info_alloca(&clientInfo);
-    snd_seq_client_info_set_client(clientInfo, -1);
+		// Bass-Split auf Channel 4
+		if(channel==3){
+			if(note<60){
+				channel = 0;
+			}else if(note>=84){
+				channel = 2;
+			}
+			else{
+				channel = 1;
+			}
+		}
 
-    while (snd_seq_query_next_client(midiInOut, clientInfo) >= 0) {
-        client = snd_seq_client_info_get_client(clientInfo);
-        const char *name = snd_seq_client_info_get_name(clientInfo);
-        if (std::strcmp(name, deviceName) == 0) {
-            //std::cout << "Client: " << client << std::endl;
-            break; // Das gewünschte Gerät wurde gefunden
+		// Offsets anwenden
+		if(channel<3){
+		 note += offsets[channel];
+		  velocity  =  (velocity * volumes[channel])/128;
+		}
+
+        if(ev->type!='*'){
+            if (ev->type == SND_SEQ_EVENT_NOTEON) {
+                //std::cout << "Note On: Channel " << channel << " Note " << note << " Velocity " << velocity;
+				fluid_synth_noteon(synth,channel, note, velocity);
+					
+            } else if (ev->type == SND_SEQ_EVENT_NOTEOFF) {
+                //std::cout << "Note Off: Channel " << channel << " Note " << note  << std::endl;
+				fluid_synth_noteoff(synth, channel, note);
+           }
         }
-        client = -1;
-    }
 
-    if (client == -1) {
-        std::cerr << "Stygmorgan nicht gefunden: " << deviceName << std::endl;
-        return;
-    }
+	}
 
-    int status = snd_seq_connect_from(midiInOut, port, client, 0);
-    if (status < 0) {
-        std::cerr << "Fehler beim Öffnen des MIDI-Geräts stygmorgan: " << snd_strerror(status) << std::endl;
-        return;
-    }
 
-    snd_seq_event_t *ev;
+void PiOrgan::handleMidiSequenzer(snd_seq_event_t *ev){
+	int err;
 
-	std::cerr << "Stygmorgan MIDI-Gerät gefunden: " << deviceName << std::endl;
-
-	fluid_synth_bank_select(synth, 12, 128);
-	fluid_synth_bank_select(synth, 9, 0);
-	fluid_synth_program_change(synth, 12, 0);
-    fluid_synth_program_change(synth, 9, 0);
-    
-	while (!stop_) {
-		snd_seq_event_input(midiInOut, &ev);
+		//std::cout << "Received MIDI event from stygmorgan: type=" << (int)(ev->type) << std::endl;
 
 		int channel = 0;
 		channel  = ev->data.note.channel + 3;
@@ -200,6 +226,7 @@ void PiOrgan::midiStygmorganIn(){
 			{
 				int ctrl = ev->data.control.param;
 				int val  = ev->data.control.value;
+				channel = ev->data.control.channel + 3;
 
 				fluid_synth_cc(synth, channel, ctrl, val);
 				break;
@@ -209,9 +236,11 @@ void PiOrgan::midiStygmorganIn(){
 			case SND_SEQ_EVENT_PGMCHANGE:
 			{
 				int program = ev->data.control.value;
+				channel = ev->data.control.channel + 3;
 
 				if(channel!=12){
 					fluid_synth_program_change(synth, channel, program);
+					std::cout << "Program Change: Channel " << channel << " Program " << program << std::endl;	
 				}
 				break;
 			}
@@ -255,17 +284,10 @@ void PiOrgan::midiStygmorganIn(){
 				break;
 		}
 	}
-    snd_seq_close(midiInOut);
-    return;
-}
 
-void PiOrgan::readMidi(){
-	int err;
-    int port = snd_seq_create_simple_port(midiInOut, "Keyboard in", SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_APPLICATION);
-
+bool PiOrgan::autoConnect(int port, const char* deviceName){
     // Finde das MIDI-Gerät anhand seines Namens
- //   const char *deviceName = "USB Uno MIDI Interface"; // Name des MIDI-Geräts
-    const char *deviceName = "ardu2midi"; // Name des MIDI-Geräts
+   // const char *deviceName = "ardu2midi"; // Name des MIDI-Geräts
     int client = -1;
     snd_seq_client_info_t *clientInfo;
     snd_seq_client_info_alloca(&clientInfo);
@@ -283,54 +305,50 @@ void PiOrgan::readMidi(){
 
     if (client == -1) {
         std::cerr << "MIDI-Gerät nicht gefunden: " << deviceName << std::endl;
-        return;
+        return false;
     }
 
     int status = snd_seq_connect_from(midiInOut, port, client, 0);
     if (status < 0) {
         std::cerr << "Fehler beim Öffnen des MIDI-Geräts: " << snd_strerror(status) << std::endl;
-        return;
+        return false;
     }
+    return true;
+}
+
+void PiOrgan::readMidi(){
+	int err;
+
+	snd_seq_open(&midiInOut, "default", SND_SEQ_OPEN_INPUT, 0);
+    snd_seq_set_client_name(midiInOut, "PiOrgan");
+
+	int portKeyboardIn = snd_seq_create_simple_port(midiInOut, "Keyboard in", SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_APPLICATION);
+    int portSequenzerIn = snd_seq_create_simple_port(midiInOut, "Sequenzer in", SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_APPLICATION);
+
+	int ardu2midi = autoConnect(portKeyboardIn, "ardu2midi");
+	int sequenzer = autoConnect(portSequenzerIn	, "stygmorgan");
+
+	fluid_synth_bank_select(synth, 12, 128);
+	fluid_synth_bank_select(synth, 9, 0);
+	fluid_synth_program_change(synth, 12, 0);
+    fluid_synth_program_change(synth, 9, 0);
 
     snd_seq_event_t *ev;
-
-	std::cerr << "MIDI-Gerät gefunden: " << deviceName << std::endl;
 
     while (!stop_) {
         snd_seq_event_input(midiInOut, &ev);
 
-		int channel = (int)ev->data.note.channel;
-		int note = (int)ev->data.note.note;
-		int velocity = (int)ev->data.note.velocity;
+		//std::cout << "Received MIDI event from: " << (int)(ev->source.client) << " port: " << (int)(ev->source.port) << std::endl;
+		//std::cout << "MIDI event destination: " << (int)(ev->dest.client) << " port: " << (int)(ev->dest.port) << std::endl;
 
-		// Bass-Split auf Channel 4
-		if(channel==3){
-			if(note<60){
-				channel = 0;
-			}else if(note>=84){
-				channel = 2;
-			}
-			else{
-				channel = 1;
-			}
+
+		if(ev->dest.port == portKeyboardIn){
+			handleMidiKeyboard(ev);
+		}else if(ev->dest.port == portSequenzerIn){
+			handleMidiSequenzer(ev);
+		}else{
+			std::cout << "Received MIDI event with unknown destination: " << ev->dest.port << std::endl;
 		}
-
-		// Offsets anwenden
-		if(channel<3){
-		 note += offsets[channel];
-		  velocity  =  (velocity * volumes[channel])/128;
-		}
-
-        if(ev->type!='*'){
-            if (ev->type == SND_SEQ_EVENT_NOTEON) {
-                //std::cout << "Note On: Channel " << channel << " Note " << note << " Velocity " << velocity;
-				fluid_synth_noteon(synth,channel, note, velocity);
-					
-            } else if (ev->type == SND_SEQ_EVENT_NOTEOFF) {
-                //std::cout << "Note Off: Channel " << channel << " Note " << note  << std::endl;
-				fluid_synth_noteoff(synth, channel, note);
-           }
-        }
 
 		// Wake screen if registred
 		if(musicKeyPressed_){
@@ -345,69 +363,9 @@ void PiOrgan::readMidi(){
     return;
 }
 
-
-void PiOrgan::readArduino(){
-	struct termios original, modified;
-	char buf[255];  
-	int variable;
-	struct pollfd fds[1];
-	int ret, res;
-	int fd = -1;
-	int ch;
-    
-	
-	fd = openUSB();
-	if(fd==-1){
-		printf("Kein Ardunio angeschlossen.\n");
-		return;
-		// printf("Bitte Ardunio anschließen\n");
-		// while((fd=openUSB())==-1){
-		// 	printf(".");
-		// 	fflush(stdout);
-		// 	sleep(1);
-		// }
-	}else{
-		printf("Verbindung zum Arduino hergestellt.\n");
-	}
-	
-    // Speichere die ursprünglichen Terminal-Einstellungen
-    tcgetattr(STDIN_FILENO, &original);
-    modified = original;
-    modified.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &modified);
-    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
-	
-	// Start polling the arduino
-	fds[0].fd = fd;
-	fds[0].events = POLLRDNORM;
-
-	while(!stop_)		// forever
-	{
-		ret = poll(fds, 1, 0);		//wait for response
-		if (ret > 0)
-		{
-			/* An event on one of the fds has occurred. */
-			if (fds[0].revents & POLLHUP)
-			{
-				printf("Hangup\n");
-			}
-			if (fds[0].revents & POLLRDNORM)
-			{
-					res = read(fd,buf,255);
-					for(int i = 0; i< res; i++){
-						doCmd(buf[i]);
-					}
-			}
-		}
-
-		
-	}		
-}
-
 void  PiOrgan::setMusicKeyPressed(void (*fnk)()){
     musicKeyPressed_ = fnk;
 }
-
 
 void  PiOrgan::setPresetsChanged(void (*fnk)(int)){
     presetsChanged_ = fnk;
@@ -1190,13 +1148,8 @@ int PiOrgan::setup() {
 
 	// Start Arduino- und Midi-Thread
 	//threadArduino_ = new thread(&PiOrgan::readArduino, this);
-    //snd_seq_t *midiInOut;
-    snd_seq_open(&midiInOut, "default", SND_SEQ_OPEN_INPUT, 0);
-    snd_seq_set_client_name(midiInOut, "PiOrgan");
 
 	threadMidi_ = new thread(&PiOrgan::readMidi, this);
-	threadMidiStygmorgan_ = new thread(&PiOrgan::midiStygmorganIn, this);
-	
 
 	return EXIT_SUCCESS;
 }

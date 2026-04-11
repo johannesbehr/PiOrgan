@@ -504,6 +504,15 @@ void PiOrganInterface::sequencerCmdLoadStyle(int index){
    // btnSequencerStop->setProperty("enabled",  "false");  
 }
 
+void PiOrganInterface::sequencerCmdDrumsOnOff(){
+    myPiOrgan.sequencerDrumsOnOff();
+}
+void PiOrganInterface::sequencerCmdBassOnOff(){
+    myPiOrgan.sequencerBassOnOff();
+}
+void PiOrganInterface::sequencerCmdBackingOnOff(){
+    myPiOrgan.sequencerBackingOnOff();
+}
 
 void PiOrganInterface::sequencerCmdStart(){
     myPiOrgan.sequencerStart();
